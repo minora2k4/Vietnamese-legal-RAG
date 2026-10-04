@@ -1,0 +1,11 @@
+elasticsearch==8.13.0
+fastapi==0.142.2
+flagembedding==1.4.2
+openai==3.24.0
+pydantic==2.13.5
+python-dotenv==1.2.4
+sentence_transformers==5.6.1
+torch==2.13.0
+uvicorn==0.54.0
+numpy
+pandas
