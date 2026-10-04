@@ -1,6 +1,6 @@
 # Vietnamese Legal RAG System
 
-Hệ thống Trợ lý Pháp luật thông minh (Legal Assistant) ứng dụng kiến trúc **Retrieval-Augmented Generation (RAG)** kết hợp tìm kiếm lai (**Hybrid Search**) và mô hình ngôn ngữ lớn (**LLM**), giúp tra cứu, tổng hợp và trả lời các thắc mắc pháp lý chuẩn xác dựa trên cơ sở dữ liệu Văn bản Quản lý Nhà nước & Luật Việt Nam.
+Hệ thống Trợ lý Pháp luật thông minh ứng dụng kiến trúc **Retrieval-Augmented Generation (RAG)** kết hợp **Hybrid Search** và **LLM**, giúp tra cứu, tổng hợp và trả lời các thắc mắc pháp lý chuẩn xác dựa trên cơ sở dữ liệu Văn bản Quản lý Nhà nước & Luật Việt Nam.
 
 ## Dataset: 
 * Bộ dataset (`th1nhng0/vietnamese-legal-documents`) 170k văn bản quy phạm pháp luật Việt Nam
