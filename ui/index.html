@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trợ lý pháp luật</title>
+<link rel="stylesheet" href="/ui/style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+</head>
+<body>
+<header><h1>Trợ lý pháp luật</h1></header>
+
+<div class="app">
+  <aside id="filters">
+    <h2>Bộ lọc</h2>
+    <label>Hiệu lực
+      <select id="f-status">
+        <option value="con_hieu_luc">Còn hiệu lực</option>
+        <option value="het_mot_phan">Hết hiệu lực một phần</option>
+        <option value="all">Tất cả</option>
+      </select></label>
+    <label>Ban hành từ năm<input id="f-from" type="number" min="1945" max="2100" placeholder="VD: 2015"></label>
+    <label>Đến năm<input id="f-to" type="number" min="1945" max="2100" placeholder="VD: 2026"></label>
+    <label>Số hiệu văn bản<input id="f-sokh" type="text" placeholder="VD: 168/2024/NĐ-CP"></label>
+    <label>Số văn bản tìm kiếm
+      <select id="f-search"><option>10</option><option>20</option><option>30</option></select></label>
+    <label>Số căn cứ hiển thị
+      <select id="f-rerank"><option>3</option><option>5</option><option>7</option></select></label>
+    <button type="button" id="freset">Đặt lại bộ lọc</button>
+  </aside>
+
+  <section class="pane" id="chatpane">
+    <div id="chat">
+      <div class="empty" id="empty">
+        <h2>Bạn cần tra cứu quy định nào?</h2>
+        <p>Đặt câu hỏi về pháp luật Việt Nam, kèm căn cứ pháp lý.</p>
+      </div>
+    </div>
+    <form id="form" autocomplete="off">
+      <input id="input" type="text" placeholder="Nhập câu hỏi của bạn" maxlength="1000" required>
+      <button id="send" type="submit">Gửi</button>
+    </form>
+  </section>
+
+  <section class="pane" id="srcpane">
+    <div class="pane-head">Văn bản được dẫn chiếu <span id="srccount"></span></div>
+    <div id="sources"><p class="hint">Căn cứ pháp lý của câu trả lời sẽ hiển thị tại đây.</p></div>
+  </section>
+</div>
+
+<script src="/ui/app.js"></script>
+</body>
+</html>
