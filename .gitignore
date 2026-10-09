@@ -24,3 +24,10 @@ data/
 # OS
 .DS_Store
 Thumbs.db
+
+# Benchmark outputs
+eval/
+optimize.md
+CLAUDE.md
+
+.claude/

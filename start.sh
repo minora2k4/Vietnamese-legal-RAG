@@ -12,10 +12,11 @@ echo "=================================================="
 
 # 2. Khởi động Docker Compose
 echo "Đang khởi động dịch vụ Elasticsearch & Kibana qua Docker..."
-if command -v docker-compose &> /dev/null; then
-    docker-compose up -d
-elif docker compose version &> /dev/null; then
+# Ưu tiên Compose v2 (docker compose): docker-compose v1 báo lỗi "network needs to be recreated" với Docker Desktop mới
+if docker compose version &> /dev/null; then
     docker compose up -d
+elif command -v docker-compose &> /dev/null; then
+    docker-compose up -d
 else
     echo "LỖI: Không tìm thấy Docker Compose trên máy!"
     exit 1

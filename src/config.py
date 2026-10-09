@@ -1,18 +1,19 @@
+"""Cấu hình chung: biến môi trường (.env)"""
 import os
+
 from dotenv import load_dotenv
 
-# Tải biến môi trường từ file .env
-load_dotenv()
+load_dotenv()  
 
 # Elasticsearch
-ES_HOST = os.getenv("ES_HOST")
-INDEX_NAME = "vietnamese_legal_documents"
+elasticsearch_host = os.getenv("ES_HOST")
+index_name = "vietnamese_legal_documents"
 
-# Models
-EMBEDDING_MODEL_NAME = "AITeamVN/Vietnamese_Embedding_v2"
-RERANKER_MODEL_NAME = "BAAI/bge-reranker-v2-m3"
-LLM_MODEL_NAME = "Qwen/Qwen3.5-9B"
+# Model
+embedding_model_name = "AITeamVN/Vietnamese_Embedding_v2"
+reranker_model_name = "BAAI/bge-reranker-v2-m3"
+llm_model_name = "Qwen/Qwen3.5-9B"
 
-# LLM Endpoint
-LLM_BASE_URL = os.getenv("LLM_BASE_URL")
-LLM_API_KEY = os.getenv("LLM_API_KEY")
+# Endpoint LLM (vLLM tự host trên Kaggle sau Cloudflare tunnel, URL đổi mỗi phiên)
+llm_base_url = os.getenv("LLM_BASE_URL")
+llm_api_key = os.getenv("LLM_API_KEY")

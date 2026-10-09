@@ -1,112 +1,353 @@
 'use strict';
-const $ = id => document.getElementById(id);
-const chat = $('chat'), form = $('form'), input = $('input'), send = $('send');
-const F = {status:$('f-status'), from:$('f-from'), to:$('f-to'), sokh:$('f-sokh'), search:$('f-search'), rerank:$('f-rerank')};
-const DEF = {status:'con_hieu_luc', from:'', to:'', sokh:'', search:'10', rerank:'3'};
+// Giao diện chat: gửi câu hỏi tới POST /api/chat, hiển thị câu trả lời (markdown) và cột văn bản dẫn chiếu.
 
-// ---------- Bộ lọc (lưu localStorage) ----------
-try { const s = JSON.parse(localStorage.getItem('filters') || '{}'); for (const k in F) if (s[k] != null) F[k].value = s[k]; } catch {}
-const saveFilters = () => { try { localStorage.setItem('filters', JSON.stringify(Object.fromEntries(Object.entries(F).map(([k, el]) => [k, el.value])))); } catch {} };
-Object.values(F).forEach(el => el.addEventListener('change', saveFilters));
-$('freset').onclick = () => { for (const k in F) F[k].value = DEF[k]; saveFilters(); };
+function getElement(id) {
+  return document.getElementById(id);
+}
 
-const payload = query => {
-  const num = el => el.value ? parseInt(el.value, 10) : null;
-  return { query, top_search: +F.search.value, top_rerank: +F.rerank.value,
-    filters: { status: F.status.value, year_from: num(F.from), year_to: num(F.to), so_ky_hieu: F.sokh.value.trim() || null } };
+const chatBox = getElement('chat');
+const questionForm = getElement('form');
+const questionInput = getElement('input');
+const sendButton = getElement('send');
+
+// Các ô bộ lọc (id trong index.html) và giá trị mặc định
+const filterInputs = {
+  status: getElement('f-status'),
+  from: getElement('f-from'),
+  to: getElement('f-to'),
+  soKyHieu: getElement('f-sokh'),
+  search: getElement('f-search'),
+  rerank: getElement('f-rerank'),
+};
+const defaultFilters = {
+  status: 'dang_ap_dung',
+  from: '',
+  to: '',
+  soKyHieu: '',
+  search: '10',
+  rerank: '3',
 };
 
-// ---------- Tiện ích ----------
-const toBottom = () => { chat.scrollTop = chat.scrollHeight; };
-const esc = s => s ? String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
-const md = s => DOMPurify.sanitize(marked.parse(s));
-const fmtMs = ms => ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(2)} s`;
-function add(cls, text) { const el = document.createElement('div'); el.className = cls; el.textContent = text; chat.appendChild(el); toBottom(); return el; }
+// ---------- Bộ lọc (lưu localStorage) ----------
+// Khóa 'filters_v2': bộ lọc lưu từ bản cũ (mặc định "Còn hiệu lực") không được đè lên mặc định mới "Đang áp dụng"
+const filterStorageKey = 'filters_v2';
 
-function addLoading() {
-  const el = document.createElement('div'); el.className = 'loading';
-  el.innerHTML = '<span class="dots"><i></i><i></i><i></i></span><span>Đang tra cứu <b class="t">0.0 s</b></span>';
-  chat.appendChild(el); toBottom();
-  const t0 = performance.now(), t = el.querySelector('.t');
-  const timer = setInterval(() => t.textContent = ((performance.now() - t0) / 1000).toFixed(1) + ' s', 100);
-  return { remove() { clearInterval(timer); el.remove(); } };
+function loadFilters() {
+  let savedFilters;
+  try {
+    savedFilters = JSON.parse(localStorage.getItem(filterStorageKey) || '{}');
+  } catch {
+    return;
+  }
+  if (typeof savedFilters !== 'object' || savedFilters === null) {
+    return;
+  }
+  // 'sokh': tên khóa ở các bản trước, vẫn đọc để giữ bộ lọc người dùng đã lưu
+  if (savedFilters.soKyHieu == null && savedFilters.sokh != null) {
+    savedFilters.soKyHieu = savedFilters.sokh;
+  }
+  for (const name in filterInputs) {
+    if (savedFilters[name] != null) {
+      filterInputs[name].value = savedFilters[name];
+    }
+  }
+}
+
+function saveFilters() {
+  const values = {};
+  for (const name in filterInputs) {
+    values[name] = filterInputs[name].value;
+  }
+  try {
+    localStorage.setItem(filterStorageKey, JSON.stringify(values));
+  } catch {
+    // Trình duyệt chặn localStorage: bỏ qua, bộ lọc chỉ không được nhớ cho lần sau
+  }
+}
+
+function resetFilters() {
+  for (const name in filterInputs) {
+    filterInputs[name].value = defaultFilters[name];
+  }
+  saveFilters();
+}
+
+loadFilters();
+for (const name in filterInputs) {
+  filterInputs[name].addEventListener('change', saveFilters);
+}
+getElement('freset').onclick = resetFilters;
+
+// Nội dung request gửi cho API (tên trường phải khớp ChatRequest trong main.py)
+function toNumberOrNull(input) {
+  if (!input.value) {
+    return null;
+  }
+  return parseInt(input.value, 10);
+}
+
+function buildRequestBody(query) {
+  return {
+    query: query,
+    top_search: Number(filterInputs.search.value),
+    top_rerank: Number(filterInputs.rerank.value),
+    filters: {
+      status: filterInputs.status.value,
+      year_from: toNumberOrNull(filterInputs.from),
+      year_to: toNumberOrNull(filterInputs.to),
+      so_ky_hieu: filterInputs.soKyHieu.value.trim() || null,
+    },
+  };
+}
+
+// ---------- Tiện ích ----------
+function scrollToBottom() {
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function escapeHtml(text) {
+  if (!text) {
+    return '';
+  }
+  return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function renderMarkdown(text) {
+  return DOMPurify.sanitize(marked.parse(text));
+}
+
+function formatDuration(milliseconds) {
+  if (milliseconds < 1000) {
+    return `${milliseconds} ms`;
+  }
+  return `${(milliseconds / 1000).toFixed(2)} s`;
+}
+
+function addMessage(className, text) {
+  const element = document.createElement('div');
+  element.className = className;
+  element.textContent = text;
+  chatBox.appendChild(element);
+  scrollToBottom();
+  return element;
+}
+
+// Dòng "Đang tra cứu ... s" có đồng hồ đếm thời gian, trả về đối tượng có hàm remove()
+function addLoadingIndicator() {
+  const element = document.createElement('div');
+  element.className = 'loading';
+  element.innerHTML = '<span class="dots"><i></i><i></i><i></i></span><span>Đang tra cứu <b class="t">0.0 s</b></span>';
+  chatBox.appendChild(element);
+  scrollToBottom();
+
+  const startTime = performance.now();
+  const timerLabel = element.querySelector('.t');
+  const timer = setInterval(function () {
+    const seconds = (performance.now() - startTime) / 1000;
+    timerLabel.textContent = seconds.toFixed(1) + ' s';
+  }, 100);
+
+  return {
+    remove() {
+      clearInterval(timer);
+      element.remove();
+    },
+  };
 }
 
 // ---------- Gửi câu hỏi ----------
-form.addEventListener('submit', async e => {
-  e.preventDefault();
-  const query = input.value.trim(); if (!query) return;
-  $('empty')?.remove(); add('msg-user', query); input.value = ''; send.disabled = true;
-  const loading = addLoading();
-  try {
-    const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload(query)) });
-    const data = await res.json().catch(() => ({}));
-    loading.remove();
-    if (res.ok) await addAnswer(data);
-    else add('error', typeof data.detail === 'string' ? data.detail : 'Dữ liệu bộ lọc không hợp lệ.');
-  } catch { loading.remove(); add('error', 'Không thể kết nối tới máy chủ. Vui lòng thử lại.'); }
-  finally { send.disabled = false; input.focus(); }
-});
+async function handleSubmit(event) {
+  event.preventDefault();
+  const query = questionInput.value.trim();
+  if (!query) {
+    return;
+  }
 
-async function addAnswer({ answer, sources, timings }) {
-  const wrap = document.createElement('div'); wrap.className = 'msg-ai';
-  wrap.innerHTML = '<div class="answer"></div>'; chat.appendChild(wrap);
+  const emptyState = getElement('empty');
+  if (emptyState) {
+    emptyState.remove();
+  }
+  addMessage('msg-user', query);
+  questionInput.value = '';
+  sendButton.disabled = true;
+  const loadingIndicator = addLoadingIndicator();
+
+  try {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildRequestBody(query)),
+    });
+    let data;
+    try {
+      data = await response.json();
+    } catch {
+      data = {};
+    }
+    loadingIndicator.remove();
+
+    if (response.ok) {
+      await addAnswer(data);
+    } else if (typeof data.detail === 'string') {
+      addMessage('error', data.detail);
+    } else {
+      addMessage('error', 'Dữ liệu bộ lọc không hợp lệ.');
+    }
+  } catch {
+    loadingIndicator.remove();
+    addMessage('error', 'Không thể kết nối tới máy chủ. Vui lòng thử lại.');
+  } finally {
+    sendButton.disabled = false;
+    questionInput.focus();
+  }
+}
+
+questionForm.addEventListener('submit', handleSubmit);
+
+function wait(milliseconds) {
+  return new Promise(function (resolve) {
+    setTimeout(resolve, milliseconds);
+  });
+}
+
+function createLinkButton(text) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'link-btn';
+  button.textContent = text;
+  return button;
+}
+
+// Hiển thị câu trả lời dần dần (khoảng 50 bước), kèm nút sao chép, nút xem căn cứ và thời gian từng bước
+async function addAnswer(data) {
+  const answer = data.answer || '';
+  const sources = data.sources;
+  const timings = data.timings;
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'msg-ai';
+  wrapper.innerHTML = '<div class="answer"></div>';
+  chatBox.appendChild(wrapper);
   showSources(sources);
-  const el = wrap.querySelector('.answer');
-  const words = (answer || '').split(' '), step = Math.max(1, Math.ceil(words.length / 50));
-  for (let i = step; i < words.length + step; i += step) {
-    el.innerHTML = md(words.slice(0, i).join(' ')); toBottom();
-    await new Promise(r => setTimeout(r, 16));
+
+  const answerElement = wrapper.querySelector('.answer');
+  const words = answer.split(' ');
+  const wordsPerStep = Math.max(1, Math.ceil(words.length / 50));
+  for (let wordCount = wordsPerStep; wordCount < words.length + wordsPerStep; wordCount += wordsPerStep) {
+    const partialAnswer = words.slice(0, wordCount).join(' ');
+    answerElement.innerHTML = renderMarkdown(partialAnswer);
+    scrollToBottom();
+    await wait(16);
   }
-  const meta = document.createElement('div'); meta.className = 'meta';
-  const copy = Object.assign(document.createElement('button'), { type: 'button', className: 'link-btn', textContent: 'Sao chép' });
-  copy.onclick = () => navigator.clipboard.writeText(el.innerText).then(() => { copy.textContent = 'Đã sao chép'; setTimeout(() => copy.textContent = 'Sao chép', 1800); });
-  meta.appendChild(copy);
-  if (sources?.length) {
-    const b = Object.assign(document.createElement('button'), { type: 'button', className: 'link-btn', textContent: `Xem căn cứ (${sources.length})` });
-    b.onclick = () => showSources(sources);
-    meta.appendChild(b);
+
+  const footer = document.createElement('div');
+  footer.className = 'meta';
+
+  const copyButton = createLinkButton('Sao chép');
+  copyButton.onclick = async function () {
+    await navigator.clipboard.writeText(answerElement.innerText);
+    copyButton.textContent = 'Đã sao chép';
+    setTimeout(function () {
+      copyButton.textContent = 'Sao chép';
+    }, 1800);
+  };
+  footer.appendChild(copyButton);
+
+  if (sources && sources.length) {
+    const sourcesButton = createLinkButton(`Xem căn cứ (${sources.length})`);
+    sourcesButton.onclick = function () {
+      showSources(sources);
+    };
+    footer.appendChild(sourcesButton);
   }
+
   if (timings) {
-    const chip = (txt, cls = '') => meta.insertAdjacentHTML('beforeend', `<span class="time ${cls}">${txt}</span>`);
-    chip(`Truy vấn ${fmtMs(timings.search_ms)}`);
-    chip(`Rerank ${fmtMs(timings.rerank_ms)}`);
-    chip(`LLM ${fmtMs(timings.llm_ms)}`);
-    chip(`Tổng ${fmtMs(timings.total_ms)}`, 'total');
+    addTimeChip(footer, `Truy vấn ${formatDuration(timings.search_ms)}`, '');
+    addTimeChip(footer, `Rerank ${formatDuration(timings.rerank_ms)}`, '');
+    addTimeChip(footer, `LLM ${formatDuration(timings.llm_ms)}`, '');
+    addTimeChip(footer, `Tổng ${formatDuration(timings.total_ms)}`, 'total');
   }
-  wrap.appendChild(meta); toBottom();
+  wrapper.appendChild(footer);
+  scrollToBottom();
+}
+
+function addTimeChip(container, text, className) {
+  container.insertAdjacentHTML('beforeend', `<span class="time ${className}">${text}</span>`);
 }
 
 // ---------- Cột văn bản dẫn chiếu ----------
-function fmt(t) {
-  t = (t || '').replace(/\r/g, '').trim();
-  if (!t.includes('\n')) t = t.replace(/(?<!Điều)\s+(?=\d{1,2}\.\s)/g, '\n').replace(/\s+(?=[a-zđ]\)\s)/g, '\n');
-  return t.split(/\n+/).map(l => l.trim()).filter(Boolean).map(l => {
-    const e = esc(l);
-    if (/^Điều\s+\d+/i.test(l)) return `<p class="l-dieu">${e}</p>`;
-    if (/^\d{1,2}\.\s/.test(l)) return `<p class="l-khoan">${e.replace(/^(\d{1,2}\.)/, '<b>$1</b>')}</p>`;
-    if (/^[a-zđ]\)\s/.test(l)) return `<p class="l-diem">${e.replace(/^([a-zđ]\))/, '<b>$1</b>')}</p>`;
-    return `<p>${e}</p>`;
-  }).join('');
+// Một dòng nội dung Điều -> thẻ <p> theo cấp: Điều / Khoản ("1.") / Điểm ("a)")
+function formatLegalLine(line) {
+  const escaped = escapeHtml(line);
+  if (/^Điều\s+\d+/i.test(line)) {
+    return `<p class="l-dieu">${escaped}</p>`;
+  }
+  if (/^\d{1,2}\.\s/.test(line)) {
+    return `<p class="l-khoan">${escaped.replace(/^(\d{1,2}\.)/, '<b>$1</b>')}</p>`;
+  }
+  if (/^[a-zđ]\)\s/.test(line)) {
+    return `<p class="l-diem">${escaped.replace(/^([a-zđ]\))/, '<b>$1</b>')}</p>`;
+  }
+  return `<p>${escaped}</p>`;
+}
+
+// Tách nội dung Điều thành các dòng để hiển thị thụt lề
+function formatLegalText(text) {
+  text = (text || '').replace(/\r/g, '').trim();
+  // Nội dung bị dồn thành một dòng: tự xuống dòng trước số khoản và chữ cái điểm
+  if (!text.includes('\n')) {
+    text = text.replace(/(?<!Điều)\s+(?=\d{1,2}\.\s)/g, '\n');
+    text = text.replace(/\s+(?=[a-zđ]\)\s)/g, '\n');
+  }
+  const paragraphs = [];
+  for (const rawLine of text.split(/\n+/)) {
+    const line = rawLine.trim();
+    if (line) {
+      paragraphs.push(formatLegalLine(line));
+    }
+  }
+  return paragraphs.join('');
+}
+
+function formatSource(source, index) {
+  const isInForce = /còn hiệu lực/i.test(source.tinh_trang_hieu_luc || '');
+  let statusClass = 'bad';
+  if (isInForce) {
+    statusClass = '';
+  }
+  let issueDateTag = '';
+  if (source.ngay_ban_hanh) {
+    issueDateTag = `<span class="tag gray">Ban hành: ${escapeHtml(source.ngay_ban_hanh)}</span>`;
+  }
+  const relevancePercent = Math.round((source.rerank_score || 0) * 100);
+  return `<article class="source">
+      <div class="source-title">${index + 1}. ${escapeHtml(source.title)}</div>
+      <div class="tags">
+        <span class="tag">${escapeHtml(source.so_ky_hieu)}</span>
+        <span class="tag gray">Vị trí: ${escapeHtml(source.partId)}</span>
+        ${issueDateTag}
+        <span class="tag ${statusClass}">${escapeHtml(source.tinh_trang_hieu_luc)}</span>
+        <span class="tag gray">Độ phù hợp ${relevancePercent}%</span>
+      </div>
+      <div class="source-text">${formatLegalText(source.text)}</div>
+    </article>`;
 }
 
 function showSources(sources) {
-  const box = $('sources');
-  $('srccount').textContent = sources?.length ? `(${sources.length})` : '';
-  if (!sources?.length) { box.innerHTML = '<p class="hint">Không có văn bản nào được dẫn chiếu.</p>'; return; }
-  box.innerHTML = sources.map((s, i) => {
-    const ok = /còn hiệu lực/i.test(s.tinh_trang_hieu_luc || '');
-    return `<article class="source">
-      <div class="source-title">${i + 1}. ${esc(s.title)}</div>
-      <div class="tags">
-        <span class="tag">${esc(s.so_ky_hieu)}</span>
-        <span class="tag gray">Vị trí: ${esc(s.partId)}</span>
-        ${s.ngay_ban_hanh ? `<span class="tag gray">Ban hành: ${esc(s.ngay_ban_hanh)}</span>` : ''}
-        <span class="tag ${ok ? '' : 'bad'}">${esc(s.tinh_trang_hieu_luc)}</span>
-        <span class="tag gray">Độ phù hợp ${Math.round((s.rerank_score || 0) * 100)}%</span>
-      </div>
-      <div class="source-text">${fmt(s.text)}</div>
-    </article>`;
-  }).join('');
-  box.scrollTop = 0;
+  const sourcesBox = getElement('sources');
+  const hasSources = Boolean(sources && sources.length);
+  if (hasSources) {
+    getElement('srccount').textContent = `(${sources.length})`;
+  } else {
+    getElement('srccount').textContent = '';
+    sourcesBox.innerHTML = '<p class="hint">Không có văn bản nào được dẫn chiếu.</p>';
+    return;
+  }
+
+  const articles = [];
+  sources.forEach(function (source, index) {
+    articles.push(formatSource(source, index));
+  });
+  sourcesBox.innerHTML = articles.join('');
+  sourcesBox.scrollTop = 0;
 }
