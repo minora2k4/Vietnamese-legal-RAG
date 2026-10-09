@@ -44,7 +44,7 @@ Hệ thống Trợ lý Pháp luật thông minh ứng dụng kiến trúc **Retr
 |---|---|---|---|
 | Truy xuất: phân tích câu hỏi, embedding, kNN / BM25, RRF | 0,6 s | 0,7 s | 0,9 s |
 | Rerank (BGE reranker, 10 ứng viên) | 0,7 s | 0,7 s | 0,7 s |
-| LLM: sinh câu trả lời, kể cả lần viết lại khi kiểm tra căn cứ | 54,6 s | 55,8 s | 74,4 s |
+| LLM: sinh câu trả lời| 54,6 s | 55,8 s | 74,4 s |
 | **Tổng** | **56,0 s** | **57,3 s** | **76,2 s** |
 
 - Truy xuất + rerank chạy riêng (không gọi LLM, mỗi lần 1 câu, `eval/run_retrieval.py`): trung vị 1,2–1,5 s/câu, p90 1,6–2,7 s.
@@ -95,7 +95,6 @@ legal-graph-rag/
 │       ├── llm_client.py            # Gọi LLM (vLLM, API tương thích OpenAI)
 │       ├── answer_check.py          # Kiểm tra số tiền / số Điều có căn cứ
 │       └── assistant.py             # ask_legal_assistant(): prompt -> LLM -> kiểm tra
-├── eval/                            # Benchmark retrieval / end-to-end và script dựng bộ câu hỏi
 ├── ui/                              # Giao diện web
 ├── docker-compose.yml               # Khởi chạy Elasticsearch & Kibana
 ├── main.py                          # API FastAPI
