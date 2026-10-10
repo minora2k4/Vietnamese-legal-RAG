@@ -29,7 +29,7 @@ status_filter_values = {
     "het_mot_phan": ["Hết hiệu lực một phần"],
     "all": None,
 }
-date_format = "yyyy-MM-dd"  # định dạng ngày dùng trong điều kiện lọc ngay_ban_hanh gửi cho ES
+date_format = "dd/MM/yyyy"  # định dạng gốc của các trường ngày trong ES, dùng cho điều kiện lọc ngay_ban_hanh
 
 
 class Filters(BaseModel):
@@ -82,9 +82,9 @@ def build_filters(filters: Filters) -> list:
         conditions.append({"terms": {"tinh_trang_hieu_luc": status_values}})
     date_range = {}
     if filters.year_from:
-        date_range["gte"] = f"{filters.year_from}-01-01"
+        date_range["gte"] = f"01/01/{filters.year_from}"
     if filters.year_to:
-        date_range["lte"] = f"{filters.year_to}-12-31"
+        date_range["lte"] = f"31/12/{filters.year_to}"
     if date_range:
         conditions.append({"range": {"ngay_ban_hanh": {**date_range, "format": date_format}}})
     if filters.so_ky_hieu:
