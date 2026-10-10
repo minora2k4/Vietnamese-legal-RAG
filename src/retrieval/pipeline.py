@@ -99,7 +99,7 @@ def retrieve(query: str, top_search: int = 10, top_rerank: int = 3, filter_condi
         hit["asked"] = hit["_source"].get("doc_id") in named_document_ids
     end_time = time.perf_counter()
 
-    # Khóa của debug / timings giữ nguyên để tương thích các file kết quả cũ trong eval/results và API
+    # Thông tin phân tích câu hỏi và thời gian từng bước (API trả timings cho UI)
     debug = {
         "codes": parsed.codes,
         "partial_codes": parsed.partial_codes,

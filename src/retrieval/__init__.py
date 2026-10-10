@@ -1,6 +1,6 @@
 """Module TRUY XUẤT: từ câu hỏi -> các Điều luật ứng viên (trước và sau rerank).
 
-- settings.py             : tham số truy xuất (trọng số RRF, số ứng viên, hệ số ưu tiên), đã chọn bằng benchmark
+- settings.py             : tham số truy xuất (trọng số RRF, số ứng viên, hệ số ưu tiên)
 - elasticsearch_client.py : kết nối Elasticsearch
 - embedding.py            : model embedding câu hỏi
 - text_normalization.py   : chuẩn hóa chuỗi để so khớp (unicode, tên văn bản, số ký hiệu)
@@ -11,5 +11,5 @@
 - subject_filter.py       : loại Điều dành cho đối tượng khác với câu hỏi
 - pipeline.py             : retrieve() = toàn bộ quy trình truy xuất + rerank
 
-Không import gì ở đây để các file chỉ dùng phần phân tích câu hỏi (eval/build_bench.py) không phải tải model.
+Không import gì ở đây để code chỉ dùng phần phân tích câu hỏi (query_parser) không phải tải model.
 """

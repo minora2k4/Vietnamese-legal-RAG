@@ -2,7 +2,7 @@
 
 Mọi luật phụ thuộc ngôn ngữ / lĩnh vực nằm trong package này. Code xử lý (src/retrieval, src/reranker,
 src/generation) chỉ áp dụng các luật ở đây, không tự chứa luật riêng.
-Thêm / sửa luật: chỉ sửa file trong src/rules/, sau đó chạy lại benchmark trong eval/.
+Thêm / sửa luật: chỉ sửa file trong src/rules/.
 
 - documents.py   : số ký hiệu, Điều/Khoản/Điểm, tên và viết tắt văn bản, cấu trúc tiêu đề, nhãn hiệu lực
 - places.py      : tỉnh / thành phố

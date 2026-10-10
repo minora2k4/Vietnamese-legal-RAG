@@ -1,8 +1,4 @@
-"""Tham số truy xuất, đã chọn bằng benchmark (xem optimize.md).
-
-Các hàm truy xuất đọc tham số qua `settings.<tên>` lúc chạy, nên eval/run_retrieval.py có thể ghi đè để thử nghiệm:
-    python -m eval.run_retrieval --name thu_nghiem --set weight_bm25=0.5 expand_legal_terms=false
-"""
+"""Tham số truy xuất. Các hàm truy xuất đọc tham số qua `settings.<tên>` lúc chạy."""
 
 # Weighted Reciprocal Rank Fusion: điểm = trọng số / (rrf_constant + thứ hạng)
 rrf_constant = 60

@@ -1,5 +1,4 @@
-"""Tham số rerank, đã chọn bằng benchmark (xem optimize.md). Đọc qua `settings.<tên>` lúc chạy để
-eval/run_retrieval.py --set có thể ghi đè."""
+"""Tham số rerank. Các hàm rerank đọc tham số qua `settings.<tên>` lúc chạy."""
 
 # Số token tối đa của mỗi cặp (câu hỏi, tiêu đề + nội dung Điều)
 rerank_max_length = 512

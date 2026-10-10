@@ -31,6 +31,16 @@ Hệ thống Trợ lý Pháp luật thông minh ứng dụng kiến trúc **Retr
 
 ---
 
+## Kết quả Benchmark
+
+Bộ **500 câu hỏi** lấy ngẫu nhiên từ "thuvienphapluat.vn", chỉ gồm các câu có văn bản nằm trong Elasticsearch. Chạy end-to-end qua `POST /api/chat` với cấu hình mặc định (`top_search=10`, `top_rerank=3`), ngày 2026-10-10:
+
+| Recall@5 | Recall@10 | Recall@50 | nDCG@5 | nDCG@10 | nDCG@50 |
+|---|---|---|---|---|---|
+| 0,714 | 0,752 | 0,804 | 0,645 | 0,657 | 0,669 |
+
+---
+
 ## Tốc độ xử lý
 
 Đo ngày 2026-10-09 trên cấu hình mặc định (`top_search=10`, `top_rerank=3`):
@@ -38,7 +48,7 @@ Hệ thống Trợ lý Pháp luật thông minh ứng dụng kiến trúc **Retr
 - **Truy xuất + rerank:** laptop RTX 3050 Ti 4 GB; Elasticsearch chạy trong Docker (VM 3,65 GB RAM), đã tắt Kibana.
 - **LLM:** Qwen3.5-9B trên vLLM, Kaggle 2×T4, gọi qua Cloudflare tunnel; mỗi luồng sinh khoảng 10 token/s.
 
-**Mỗi câu hỏi** (E2E qua `POST /api/chat`, 350 câu của `eval/legal_bench_200.json` + `eval/code_bench.json`, gửi 3 câu song song):
+**Mỗi câu hỏi** (E2E qua `POST /api/chat`, 350 câu hỏi, gửi 3 câu song song):
 
 | Bước | Trung vị | Trung bình | p90 |
 |---|---|---|---|
@@ -47,7 +57,7 @@ Hệ thống Trợ lý Pháp luật thông minh ứng dụng kiến trúc **Retr
 | LLM: sinh câu trả lời| 54,6 s | 55,8 s | 74,4 s |
 | **Tổng** | **56,0 s** | **57,3 s** | **76,2 s** |
 
-- Truy xuất + rerank chạy riêng (không gọi LLM, mỗi lần 1 câu, `eval/run_retrieval.py`): trung vị 1,2–1,5 s/câu, p90 1,6–2,7 s.
+- Truy xuất + rerank chạy riêng (không gọi LLM, mỗi lần 1 câu): trung vị 1,2–1,5 s/câu, p90 1,6–2,7 s.
 - Truy vấn đầu tiên, hoặc khi vector chưa nằm trong cache của ES, có thể mất 4–10 s cho bước truy xuất. Nếu bật Kibana, bước truy xuất chậm khoảng gấp đôi.
 - LLM chiếm khoảng 97% thời gian. Câu trả lời dài trung vị khoảng 1.350 ký tự.
 
@@ -55,8 +65,8 @@ Hệ thống Trợ lý Pháp luật thông minh ứng dụng kiến trúc **Retr
 
 | Lượt đo | Số câu | Tổng thời gian | Thông lượng |
 |---|---|---|---|
-| `legal_bench_200` | 200 | 64 phút | 19,2 s/câu (~3,1 câu/phút) |
-| `code_bench` | 150 | 46 phút | 18,4 s/câu (~3,3 câu/phút) |
+| Câu hỏi nội dung | 200 | 64 phút | 19,2 s/câu (~3,1 câu/phút) |
+| Câu hỏi nêu số ký hiệu văn bản | 150 | 46 phút | 18,4 s/câu (~3,3 câu/phút) |
 
 ---
 
