@@ -32,7 +32,7 @@ Hệ thống Trợ lý Pháp luật thông minh ứng dụng kiến trúc **Retr
 ---
 
 ## Kết quả Benchmark
-
+Dataset benchmark và quy trình benchmark không được đưa ở đây.
 Bộ **500 câu hỏi** lấy ngẫu nhiên từ "thuvienphapluat.vn", chỉ gồm các câu có văn bản nằm trong Elasticsearch. Chạy end-to-end qua `POST /api/chat` với cấu hình mặc định (`top_search=10`, `top_rerank=3`), ngày 2026-10-10:
 
 | Recall@5 | Recall@10 | Recall@50 | nDCG@5 | nDCG@10 | nDCG@50 |
